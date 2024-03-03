@@ -1,0 +1,140 @@
+<cart-drawer class="drawer{% if cart == empty %} is-empty{% endif %} fixed top-0 left-0 flex justify-end bottom-0 w-screen h-full -translate-y-full">
+  <div id="CartDrawer" class="cart-drawer h-full w-80">
+    <div id="CartDrawer-Overlay" class="fixed w-full h-full top-0 bottom-0 left-0 bg-black opacity-80"></div>
+    <div
+      class="drawer__inner w-80 z-1000 relative h-full p-4 bg-white "
+      role="dialog"
+      aria-modal="true"
+      aria-label="{{ 'sections.cart.title' | t }}"
+      tabindex="-1"
+    >
+
+      <div class="drawer__header flex items-center justify-between pb-4">
+        <h2 class="font-semibold text-lg lg:text-xl">Cart</h2>
+        <button
+          class="drawer__close w-3 h-3"
+          type="button"
+          aria-label="{{ 'accessibility.close' | t }}"
+        >
+          {% render 'icon-close' %}
+        </button>
+      </div>
+      <cart-drawer-items
+        {% if cart == empty %}
+          class=" is-empty"
+        {% endif %}
+      >
+
+        <form
+          action="{{ routes.cart_url }}"
+          id="CartDrawer-Form"
+          class="cart__contents cart-drawer__form"
+          method="post"
+        >
+          <div id="CartDrawer-CartItems" class="drawer__contents js-contents">
+              <div class="drawer__cart-items-wrapper pb-8">
+                <table class="w-full" role="table">
+
+                  <tbody class="cart-drawer__wrapper flex flex-col" role="rowgroup">
+                    {%- for item in cart.items -%}
+                      <tr id="CartDrawer-Item-{{ item.index | plus: 1 }}" class="flex items-center justify-between gap-x-2.5 pb-2" role="row">
+                        <td class="cart-item__media" role="cell" headers="CartDrawer-ColumnProductImage">
+                          {% if item.image %}
+                            <a href="{{ item.url }}" class="cart-item__link" tabindex="-1" aria-hidden="true"> </a>
+                            <img
+                              class="cart-item__image"
+                              src="{{ item.image | image_url: width: 300 }}"
+                              alt="{{ item.image.alt | escape }}"
+                              loading="lazy"
+                              width="150"
+                              height="{{ 150 | divided_by: item.image.aspect_ratio | ceil }}"
+                            >
+                          {% endif %}
+                        </td>
+
+                        <td class="cart-item__details" role="cell" headers="CartDrawer-ColumnProduct">
+
+                            <a href="{{ item.url }}" class="font-semibold text-lg lg:text-xl lg:pb-4">
+                            {{- item.product.title | escape -}}
+                            </a>
+                            <div>
+                                {{ item.original_price | money }}
+                            </div>
+                        </td>
+
+                        <td class="cart-item__quantity" role="cell" headers="CartDrawer-ColumnQuantity">
+                          <div class="cart-item__quantity-wrapper">
+                            <quantity-input class="quantity flex items-center">
+                              <button class="quantity__button no-js-hidden w-3 h-3" name="minus" type="button">
+                                {% render 'icon-minus' %}
+                              </button>
+                              <input
+                                class="quantity__input w-8"
+                                type="number"
+                                name="updates[]"
+                                value="{{ item.quantity }}"
+                                min="0"
+                                aria-label="{{ 'products.product.quantity.input_label' | t: product: item.product.title | escape }}"
+                                id="Drawer-quantity-{{ item.index | plus: 1 }}"
+                                data-index="{{ item.index | plus: 1 }}" disabled
+                              >
+                              <button class="quantity__button no-js-hidden w-3 h-3" name="plus" type="button">
+                                {% render 'icon-plus' %}
+                              </button>
+                            </quantity-input>
+
+                            <cart-remove-button
+                              id="CartDrawer-Remove-{{ item.index | plus: 1 }}"
+                              data-index="{{ item.index | plus: 1 }}" class="w-6 h-6 block"
+                            >
+                              <span
+                                class="button button--tertiary"
+                                aria-label="{{ 'sections.cart.remove_title' | t: title: item.title }}"
+                              >
+                                {% render 'icon-remove' %}
+                              </span>
+                            </cart-remove-button>
+                          </div>
+                        </td>
+                      </tr>
+                    {%- endfor -%}
+                  </tbody>
+                </table>
+              </div>
+          </div>
+        </form>
+      </cart-drawer-items>
+
+      <div class="drawer__footer">
+        <!-- Start blocks -->
+        <!-- Subtotals -->
+
+        <div class="cart-drawer__footer pb-4">
+          <div class="flex items-center justify-between" role="status">
+            <h3 class="totals__subtotal">Subtotal</h3>
+            <p class="totals__subtotal-value">{{ cart.total_price | money_with_currency }}</p>
+          </div>
+        </div>
+
+        <!-- CTAs -->
+
+        <div class="cart__ctas text-center">
+        
+          <button type="submit" disabled hidden aria-hidden="true" form="CartDrawer-Form"></button>
+          <button 
+            type="submit"
+            id="CartDrawer-Checkout"
+            class="cart__checkout-button bg-black pt-2 pb-2 pl-4 px-4 text-white rounded-xl"
+            name="checkout"
+            form="CartDrawer-Form"
+            {% if cart == empty %}
+              disabled
+            {% endif %}
+          >
+            Checkout
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</cart-drawer>

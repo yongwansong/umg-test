@@ -1,8 +1,13 @@
 {
   "sections": {
     "main": {
-      "type": "placeholder",
+      "type": "main-product",
+      "blocks": {
+      },
+      "block_order": [
+      ],
       "settings": {
+       
       }
     }
   },
