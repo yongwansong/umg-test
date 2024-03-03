@@ -2,12 +2,7 @@
   "sections": {
     "main": {
       "type": "main-product",
-      "blocks": {
-      },
-      "block_order": [
-      ],
       "settings": {
-       
       }
     }
   },
