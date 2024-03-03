@@ -79,6 +79,7 @@
     <a class="sr-only focus:not-sr-only" href="#main">
       {{ 'accessibility.skip_to_text' | t }}
     </a>
+    {%- render 'cart-drawer' -%}
     {% section 'header' %}
     <main id="main" role="main" class="min-h-screen">
       {{ content_for_layout }}
