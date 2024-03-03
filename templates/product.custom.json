@@ -2,6 +2,42 @@
   "sections": {
     "main": {
       "type": "main-product",
+      "blocks": {
+        "title_A3NUEW": {
+          "type": "title",
+          "settings": {
+          }
+        },
+        "price_zH8edi": {
+          "type": "price",
+          "settings": {
+          }
+        },
+        "variant_picker_z8JncK": {
+          "type": "variant_picker",
+          "settings": {
+            "picker_type": "button"
+          }
+        },
+        "quantity_selector_Bp8etx": {
+          "type": "quantity_selector",
+          "settings": {
+          }
+        },
+        "buy_buttons_QbnWTP": {
+          "type": "buy_buttons",
+          "settings": {
+            "show_dynamic_checkout": true
+          }
+        }
+      },
+      "block_order": [
+        "title_A3NUEW",
+        "price_zH8edi",
+        "variant_picker_z8JncK",
+        "quantity_selector_Bp8etx",
+        "buy_buttons_QbnWTP"
+      ],
       "settings": {
       }
     }
