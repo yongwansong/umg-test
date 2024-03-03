@@ -1,0 +1,319 @@
+class VariantSelects extends HTMLElement {
+  constructor() {
+    super();
+    this.addEventListener('change', this.onVariantChange);
+  }
+
+  onVariantChange() {
+    this.updateOptions();
+    this.updateMasterId();
+
+    if (!this.currentVariant) {
+      this.setUnavailable();
+    } else {
+      this.updateURL();
+      this.updateVariantInput();
+      this.updateShareUrl();
+    }
+  }
+
+  updateOptions() {
+    this.options = Array.from(this.querySelectorAll('select'), (select) => select.value);
+  }
+
+  updateMasterId() {
+    this.currentVariant = this.getVariantData().find((variant) => {
+      return !variant.options.map((option, index) => {
+        return this.options[index] === option;
+      }).includes(false);
+    });
+    document.querySelector('.product-price').textContent = '$'+(this.currentVariant.price/100).toFixed(2);
+  }
+
+
+  updateURL() {
+    if (!this.currentVariant || this.dataset.updateUrl === 'false') return;
+    window.history.replaceState({ }, '', `${this.dataset.url}?variant=${this.currentVariant.id}`);
+    document.querySelector('.variant-id__form').value = this.currentVariant.id;
+  }
+
+  updateShareUrl() {
+    const shareButton = document.getElementById(`Share-${this.dataset.section}`);
+    if (!shareButton) return;
+    shareButton.updateUrl(`${window.shopUrl}${this.dataset.url}?variant=${this.currentVariant.id}`);
+  }
+
+  updateVariantInput() {
+    const productForms = document.querySelectorAll(`#product-form-${this.dataset.section}, #product-form-installment`);
+    productForms.forEach((productForm) => {
+      const input = productForm.querySelector('input[name="id"]');
+      input.value = this.currentVariant.id;
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  }
+
+  setUnavailable() {
+    const button = document.getElementById(`product-form-${this.dataset.section}`);
+    const addButton = button.querySelector('[name="add"]');
+    const addButtonText = button.querySelector('[name="add"] > span');
+    const price = document.getElementById(`price-${this.dataset.section}`);
+    if (!addButton) return;
+    addButtonText.textContent = window.variantStrings.unavailable;
+    if (price) price.classList.add('visibility-hidden');
+  }
+
+  getVariantData() {
+    this.variantData = this.variantData || JSON.parse(this.querySelector('[type="application/json"]').textContent);
+    return this.variantData;
+  }
+}
+
+customElements.define('variant-selects', VariantSelects);
+
+class VariantRadios extends VariantSelects {
+  constructor() {
+    super();
+	this.querySelectorAll('fieldset').forEach((fieldset) => {
+		const discounts = fieldset.querySelectorAll('.variant-field__sale');
+		if( discounts.length < 2 ) return;
+		const best_value = Array.from(discounts).reduce((prev, current) => (parseInt(prev.dataset.discounted) > parseInt(current.dataset.discounted)) ? prev : current);
+		
+		if (best_value) {
+			best_value.closest('label').classList.add('variant-field__best-value');
+		}
+	});
+  }
+
+  updateOptions() {
+    const fieldsets = Array.from(this.querySelectorAll('fieldset'));
+    this.options = fieldsets.map((fieldset) => {
+      return Array.from(fieldset.querySelectorAll('input')).find((radio) => radio.checked).value;
+    });
+  }
+}
+
+customElements.define('variant-radios', VariantRadios);
+
+document.addEventListener('DOMContentLoaded', function() {
+
+  function update(){
+    fetch("/cart.json")
+    .then((response) => response.json())
+    .then((data) => {
+      let text ='';
+     
+      console.log(data.items, 'data.items');
+      data.items.forEach((item, index) => {
+          text += `
+            <tr id="CartDrawer-Item-${index + 1}" class="flex items-center justify-between gap-x-2 pb-2" role="row">
+              <td class="cart-item__media" role="cell" headers="CartDrawer-ColumnProductImage">
+                  <a href="${item.url}" class="cart-item__link" tabindex="-1" aria-hidden="true"> </a>
+                  <img
+                    class="cart-item__image"
+                    src="${item.image}"
+                    alt="${item.alt}"
+                    loading="lazy"
+                    width="150"
+                    height=""
+                  >
+              </td>
+
+              <td class="cart-item__details" role="cell" headers="CartDrawer-ColumnProduct">
+
+                  <a href="{{ item.url }}" class="font-semibold text-lg lg:text-xl lg:pb-4">
+                    ${item.title}
+                  </a>
+                  <div>
+                      $${(item.original_price/100).toFixed(2)}
+                  </div>
+              </td>
+
+              <td class="cart-item__quantity" role="cell" headers="CartDrawer-ColumnQuantity">
+                <div class="cart-item__quantity-wrapper">
+                  <quantity-input class="quantity flex items-center">
+                    <button class="quantity__button no-js-hidden w-3 h-3" name="minus" type="button">
+                      <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" role="presentation" class="icon icon-minus w-full h-full" fill="none" viewBox="0 0 10 2">
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M.5 1C.5.7.7.5 1 .5h8a.5.5 0 110 1H1A.5.5 0 01.5 1z" fill="currentColor">
+                      </svg>
+
+                    </button>
+                    <input
+                      class="quantity__input w-8 pl-2"
+                      type="number"
+                      name="updates[]"
+                      value="${item.quantity}"
+                      min="0"
+                      id="Drawer-quantity-${index + 1}"
+                      data-index="${index + 1}" disabled
+                    >
+                    <button class="quantity__button no-js-hidden w-3 h-3" name="plus" type="button">
+                      <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" role="presentation" class="icon icon-plus w-full h-full" fill="none" viewBox="0 0 10 10">
+                        <path fill-rule="evenodd" clip-rule="evenodd" d="M1 4.51a.5.5 0 000 1h3.5l.01 3.5a.5.5 0 001-.01V5.5l3.5-.01a.5.5 0 00-.01-1H5.5L5.49.99a.5.5 0 00-1 .01v3.5l-3.5.01H1z" fill="currentColor">
+                      </svg>
+
+                    </button>
+                  </quantity-input>
+
+                  <cart-remove-button
+                    id="CartDrawer-Remove-${index + 1}"
+                    data-index="${index + 1}" class="w-6 h-6 block"
+                  >
+                    <span
+                      class="button button--tertiary"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true" focusable="false" role="presentation" class="icon icon-remove">
+                        <path d="M14 3h-3.53a3.07 3.07 0 00-.6-1.65C9.44.82 8.8.5 8 .5s-1.44.32-1.87.85A3.06 3.06 0 005.53 3H2a.5.5 0 000 1h1.25v10c0 .28.22.5.5.5h8.5a.5.5 0 00.5-.5V4H14a.5.5 0 000-1zM6.91 1.98c.23-.29.58-.48 1.09-.48s.85.19 1.09.48c.2.24.3.6.36 1.02h-2.9c.05-.42.17-.78.36-1.02zm4.84 11.52h-7.5V4h7.5v9.5z" fill="currentColor"/>
+                        <path d="M6.55 5.25a.5.5 0 00-.5.5v6a.5.5 0 001 0v-6a.5.5 0 00-.5-.5zM9.45 5.25a.5.5 0 00-.5.5v6a.5.5 0 001 0v-6a.5.5 0 00-.5-.5z" fill="currentColor"/>
+                      </svg>
+
+                    </span>
+                  </cart-remove-button>
+                </div>
+              </td>
+            </tr>
+          `
+      })
+      document.querySelector('.cart-drawer__wrapper').innerHTML = text;
+      document.querySelector('cart-drawer').classList.remove('-translate-y-full');
+      document.querySelectorAll('.cart-item__quantity-wrapper').forEach(item => {
+        item.querySelector('quantity-input .quantity__button[name="plus"]').addEventListener('click', function(){
+          let quantity = item.querySelector('.quantity__input').value;
+          item.querySelector('.quantity__input').value = Number(quantity)+1;
+          let qty = Number(quantity)+1;
+          let line = item.querySelector('.quantity__input').dataset.index;
+          let data = {line:line,quantity:qty};
+          changeCart(data);
+        })
+
+        item.querySelector('quantity-input .quantity__button[name="minus"]').addEventListener('click', function(){
+          let quantity = item.querySelector('.quantity__input').value;
+          let qty = '';
+          if(quantity>0)
+          {
+            item.querySelector('.quantity__input').value = Number(quantity)-1;
+            qty = Number(quantity)-1;
+          }
+          let line = item.querySelector('.quantity__input').dataset.index;
+          let data = {line:line,quantity:qty};
+          changeCart(data);
+        })
+      })
+      document.querySelectorAll('cart-remove-button').forEach(button =>{
+        button.addEventListener('click', function(){
+          let quantity = 0;
+          let line = this.dataset.index;
+          let data = {line:line,quantity:quantity};
+          changeCart(data);
+        })
+      })
+      document.querySelector('.totals__subtotal-value').textContent = '$'+(data.items_subtotal_price/100).toFixed(2);
+      if(data.items.length){
+        document.querySelector('.drawer__footer').classList.remove('hidden');
+      }else{
+        document.querySelector('.drawer__footer').classList.add('hidden');
+      }
+      
+    })
+  }
+
+  document.querySelector('.product-form__submit').addEventListener('click', function(e){
+    e.preventDefault();
+    let quantity = document.querySelector('.product-form__input quantity-input .quantity__input').value;
+    console.log(quantity, 'quantity');
+    let variantId = document.querySelector('.variant-id__form').value;
+    let data = {items: [{id: variantId,quantity: quantity}]};
+    addCart(data);
+  })
+
+  document.querySelector('.drawer__close').addEventListener('click', function(){
+    document.querySelector('cart-drawer').classList.add('-translate-y-full');
+  })
+
+  document.querySelector('.product-form__input quantity-input .quantity__button[name="plus"]').addEventListener('click', function(){
+    let quantity = document.querySelector('.product-form__input quantity-input .quantity__input').value;
+    document.querySelector('.product-form__input quantity-input .quantity__input').value = Number(quantity)+1;
+  })
+
+  document.querySelector('.product-form__input quantity-input .quantity__button[name="minus"]').addEventListener('click', function(){
+    let quantity = document.querySelector('.product-form__input quantity-input .quantity__input').value;
+    if(quantity>0)
+    document.querySelector('.product-form__input quantity-input .quantity__input').value = Number(quantity)-1;
+  })
+
+  function addCart(info){
+    fetch('/cart/add.js', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              'dataType': 'json'
+          },
+          body: JSON.stringify(info),
+      })
+      .then(response => response.json())
+      .then(data => {
+          console.log('product added')
+          console.log(data);
+          update();
+      })
+      .catch((error) => {
+          console.error('Error:', error);
+      });
+  }
+
+  function changeCart(info){
+    fetch('/cart/change.js', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'dataType': 'json'
+        },
+        body: JSON.stringify(info),
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log(data);
+        update();
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+    });
+  }
+
+  document.querySelectorAll('cart-remove-button').forEach(button =>{
+    button.addEventListener('click', function(){
+      let quantity = 0;
+      let line = this.dataset.index;
+      let data = {line:line,quantity:quantity};
+      changeCart(data);
+    })
+  })
+
+  document.querySelectorAll('.cart-item__quantity-wrapper').forEach(item => {
+    item.querySelector('quantity-input .quantity__button[name="plus"]').addEventListener('click', function(){
+      let quantity = item.querySelector('.quantity__input').value;
+      item.querySelector('.quantity__input').value = Number(quantity)+1;
+      let qty = Number(quantity)+1;
+      let line = item.querySelector('.quantity__input').dataset.index;
+      let data = {line:line,quantity:qty};
+      changeCart(data);
+    })
+
+    item.querySelector('quantity-input .quantity__button[name="minus"]').addEventListener('click', function(){
+      let quantity = item.querySelector('.quantity__input').value;
+      let qty = '';
+      if(quantity>0)
+      {
+        item.querySelector('.quantity__input').value = Number(quantity)-1;
+        qty = Number(quantity)-1;
+      }
+      let line = item.querySelector('.quantity__input').dataset.index;
+      let data = {line:line,quantity:qty};
+      changeCart(data);
+    })
+  })
+
+  document.querySelector('.cart-draweer__toggle').addEventListener('click', function(){
+    document.querySelector('cart-drawer').classList.remove('-translate-y-full');
+  })
+
+});
